@@ -1,0 +1,108 @@
+---
+title: "ds202_hw6"
+author: "YangfanCai/yangfanc"
+date: "4/15/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(ggthemes)
+library(plotly)
+library("dplyr")
+library("tidyr")
+library("tidyverse")
+library("readxl")
+library("ggrepel")
+library("RColorBrewer")
+library(maps)
+library(lubridate)
+```
+
+#1. Import the data and clean appropriately. To read in the data, you can use readxl::read_xlsx('fileNameHere', sheet='sheetNameHere'). Required data are in the sheets Best in show and Best in show full sheet. Take extra care on the column names and the first few rows of the data frame after read in.
+
+
+
+```{r}
+bis <- readxl::read_xlsx("KIB - Best in Show (public).xlsx", sheet='Best in show', skip = 5)
+kib <- readxl::read_xlsx('KIB - Best in Show (public).xlsx', sheet='Best in show full sheet', skip = 2)
+kib <- kib %>% rename("Dog breed"="Sources - see bottom right")
+kib <- kib %>% rename("INTELLIGENCE ranking_2" = "1 INTELLIGENCE (TRAINABILITY) ranking")
+kib <- kib %>% rename("INTELLIGENCE ranking_1" = `INTELLIGENCE (TRAINABILITY) ranking`)
+bis <- bis %>% rename('popularity ranking' = `popularity ranking (1-173, 1 = most popular)`)
+```
+
+
+```{r}
+bis1 <- bis %>% select(`Dog breed`, category, `popularity ranking`,`intelligence ranking`,`intelligence category`,`size category`)
+kib1 <- kib %>% select(`Dog breed`,category, `datadog score`, `POPULARITY IN US...6`,`POPULARITY IN US...7`, `INTELLIGENCE ranking_1`,`INTELLIGENCE ranking_2`,`POPULAR RATING`,`size category`,`intelligence category` )
+
+```
+
+```{r}
+kib1 <- kib1 %>%
+  select('Dog breed', 'category', 'datadog score', 'size category', 'intelligence category') %>%
+  mutate('size category' = as.factor(kib1$'size category')) %>%
+  mutate('intelligence category' = as.factor(kib1$'intelligence category')) %>%
+  mutate(Intelligence = if_else(kib1$'intelligence category' == 'Lowest', 'Dumb', 'Clever')) %>%
+  mutate(Intelligence = if_else(kib1$'intelligence category' == 'Fair', 'Dumb', 'Clever')) 
+kib1$'size category' <- factor(kib1$'size category', levels = c("small", "medium", "large"))
+kib1$'Intelligence' <- as.factor(kib1$'Intelligence')
+kib1$'Intelligence' <- factor(kib1$'Intelligence', levels = c('Dumb', 'Clever'))
+kib2 <- left_join(kib1, bis1, by = 'Dog breed')
+kib2 <- kib2 %>% select(-c(category.y, `size category.y`, `intelligence category.y`))
+kib2$`intelligence category.x`[kib2$`intelligence category.x` == "no data"] <- NA
+kib2$`popularity ranking` <- as.numeric(kib2$`popularity ranking`)
+kib2 <- kib2 %>% rename(`size` = `size category.x`)
+kib2 <- kib2 %>% rename('type' ='category.x')
+kib2 <- kib2 %>% rename('intelligence category' = 'intelligence category.x')
+kib2 <- kib2 %>% rename('score' = 'datadog score')
+kib2 <- kib2 %>% rename('popularity' = 'popularity ranking')
+kib2
+```
+
+
+
+#2. Create a graphics similar to the top dogs figure. Your figure needs to display the following information with appropriate plotting elements:
+
+#breed of dog
+#type of dog (work, toy, etc.)
+#size of dog
+#data score
+#popularity
+#intelligence of the dog
+#appropriate legends & explanation
+
+```{r,fig.width=9,fig.height=5}
+ggplot(kib2 %>% na.omit, aes(x = `score`, y = popularity)) + 
+  geom_point(aes(color = 'category', shape = `intelligence category`, size = `size`)) +
+  geom_hline(yintercept = 86) + 
+  geom_vline(xintercept = 2.3) + scale_shape_manual(values = 1:nlevels(kib2$`intelligence category`)) +
+  geom_text(aes(label = `Dog breed`), hjust=0, vjust=0,na.rm = TRUE,check_overlap = TRUE, size=2)+ggtitle("Top Dogs")+xlab("score")+ylab("popularity")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
